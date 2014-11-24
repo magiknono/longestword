@@ -3,22 +3,65 @@ require 'open-uri'
 require 'json'
 
   def game
-    @grid_array = []
-    9.times do
-      @grid_array << ('A'..'Z').to_a[rand(26)]
-    end
-
+    @grid = generate_grid(9).join(" ")
   end
 
   def score
-    @attempt = params[:attempt]
-    @start_time = params[:start_time]
-    @end_time = Time.now
-    @result_time = (@end_time.to_i - @start_time.to_i)/60000
+    attempt = params[:attempt]
+    start_time = Time.parse(params[:start_time])
+    @grid = params[:grid]
+    end_time = Time.now
+    @result = run_game(attempt, @grid, start_time, end_time)
 
-    url_api = "http://api.wordreference.com/0.8/80143/json/enfr/"
-    @hash_result = JSON.parse(open(url_api + @attempt ).read)
-    @translation = @hash_result["term0"]["PrincipalTranslations"]["0"]["FirstTranslation"]["term"]
-
+    if session[:gamescount]
+      session[:gamescount] += 1
+    else
+      session[:gamescount] = 1
+    end
   end
+
+private
+  def generate_grid(grid_size)
+  Array.new(grid_size) { ('A'..'Z').to_a[rand(26)] }
+end
+
+
+def included?(guess, grid)
+  guess.split("").all? { |letter| grid.include? letter }
+end
+
+def compute_score(attempt, time_taken)
+  (time_taken > 60.0) ? 0 : attempt.size * (1.0 - time_taken / 60.0)
+end
+
+def run_game(attempt, grid, start_time, end_time)
+  result = { time: end_time - start_time }
+
+  result[:translation] = get_translation(attempt)
+  result[:score], result[:message] = score_and_message(
+    attempt, result[:translation], grid, result[:time])
+
+  result
+end
+
+def score_and_message(attempt, translation, grid, time)
+  if translation
+    if included?(attempt.upcase, grid)
+      score = compute_score(attempt, time)
+      [score, "well done"]
+    else
+      [0, "not in the grid"]
+    end
+  else
+    [0, "not an english word"]
+  end
+end
+
+
+def get_translation(word)
+  response = open("http://api.wordreference.com/0.8/80143/json/enfr/#{word.downcase}")
+  json = JSON.parse(response.read.to_s)
+  json['term0']['PrincipalTranslations']['0']['FirstTranslation']['term'] unless json["Error"]
+end
+
 end

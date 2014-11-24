@@ -1,7 +1,13 @@
 <h1>Pages#score</h1>
 <p>Find me in app/views/pages/score.html.erb</p>
 <h2>**** Now your results : ****</h2>
-<br />
-<h3>Your word : <%= @attempt %></h3>
-<h3>Time taken to answer : <%= @result_time  %></h3>
-<h3>Translation: <%= @translation %></h3>
+
+
+<ul>
+  <li><%= @grid %></li>
+  <li><%= @result[:translation] %></li>
+  <li><%= @result[:score] %></li>
+  <li><%= @result[:message] %></li>
+  <li><%= @result[:time] %></li>
+  <<li><%= session[:gamescount] %></li>
+</ul>
